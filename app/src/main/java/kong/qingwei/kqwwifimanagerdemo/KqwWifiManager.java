@@ -7,6 +7,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,6 +15,8 @@ import java.util.List;
  * WifiManager : https://developer.android.com/reference/android/net/wifi/WifiManager.html
  * WifiConfiguration : https://developer.android.com/reference/android/net/wifi/WifiConfiguration.html
  * ScanResult : https://developer.android.com/reference/android/net/wifi/ScanResult.html
+ * WifiInfo : https://developer.android.com/reference/android/net/wifi/WifiInfo.html
+ * blog : http://blog.csdn.net/yuanbohx/article/details/8109042
  * Wifi管理
  */
 public class KqwWifiManager {
@@ -49,29 +52,41 @@ public class KqwWifiManager {
         }
     }
 
-    public void startScan() {
+    /**
+     * 获取Wifi
+     * @return Wifi列表
+     */
+    public List<ScanResult> getWifiList(){
+        mWifiManager.startScan();
+        // 得到扫描结果
+        return mWifiManager.getScanResults();
+    }
+
+    public List<ScanResult> startScan() {
         mWifiManager.startScan();
         // 得到扫描结果
         mWifiList = mWifiManager.getScanResults();
-        Log.i(TAG, "--------------------------------------------------------------------");
-        Log.i(TAG, "-  得到扫描结果   -----------------------------------------------");
-        for (ScanResult result : mWifiList) {
-            String ssid = result.SSID;
-            String bssid = result.BSSID;
-//            result.isPasspointNetwork()
-            String capabilities = result.capabilities;
-            int frequency = result.frequency;
-            int level = result.level;
-            Log.i(TAG, "startScan: SSID = " + ssid + " bssid = " + bssid + " capabilities = " + capabilities + " level = " + level + " frequency = " + frequency );
-        }
-        Log.i(TAG, "--------------------------------------------------------------------");
-        Log.i(TAG, "-  得到配置好的网络连接  ---------------------------------------");
-        // 得到配置好的网络连接
-        mWifiConfiguration = mWifiManager.getConfiguredNetworks();
-        for (WifiConfiguration result : mWifiConfiguration) {
-            String ssid = result.SSID;
-            Log.i(TAG, "startScan: SSID = " + ssid);
-        }
-        Log.i(TAG, "--------------------------------------------------------------------");
+//        Log.i(TAG, "--------------------------------------------------------------------");
+//        Log.i(TAG, "-  得到扫描结果   -----------------------------------------------");
+//        for (ScanResult result : mWifiList) {
+//            String ssid = result.SSID;
+//            String bssid = result.BSSID;
+////            result.isPasspointNetwork()
+//            String capabilities = result.capabilities;
+//            int frequency = result.frequency;
+//            int level = result.level;
+//            Log.i(TAG, "startScan: SSID = " + ssid + " bssid = " + bssid + " capabilities = " + capabilities + " level = " + level + " frequency = " + frequency);
+//        }
+//        Log.i(TAG, "--------------------------------------------------------------------");
+//        Log.i(TAG, "-  得到配置好的网络连接  ---------------------------------------");
+//        // 得到配置好的网络连接
+//        mWifiConfiguration = mWifiManager.getConfiguredNetworks();
+//        for (WifiConfiguration result : mWifiConfiguration) {
+//            String ssid = result.SSID;
+//            Log.i(TAG, "startScan: SSID = " + ssid);
+//        }
+//        Log.i(TAG, "--------------------------------------------------------------------");
+
+        return mWifiList;
     }
 }
