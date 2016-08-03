@@ -99,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         final int networkId = mKqwWifiManager.getNetworkIdFromConfig(scanResult);
         Log.i(TAG, "showDialog: networkId = " + networkId);
         final String SSID = scanResult.SSID;
-        if (-1 == networkId) {
             // 系统没有保存该网络的配置
             final EditText editText = new EditText(this);
             editText.setHint("请输入密码");
@@ -119,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
                     })
                     .setNegativeButton("取消", null)
                     .show();
+        /*if (-1 == networkId) {
         } else {
             // 系统保存过该网络的配置
             new AlertDialog.Builder(this)
@@ -140,6 +140,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
                     })
                     .show();
 
-        }
+        }*/
     }
+
 }
