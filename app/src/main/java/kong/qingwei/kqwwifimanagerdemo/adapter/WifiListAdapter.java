@@ -1,6 +1,7 @@
 package kong.qingwei.kqwwifimanagerdemo.adapter;
 
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +35,17 @@ public class WifiListAdapter extends RecyclerView.Adapter<WifiListAdapter.ViewHo
     // 初始化
     public WifiListAdapter(List<ScanResult> scanResults) {
         if (null != scanResults) {
+            mScanResults = new ArrayList<>();
             mScanResults.addAll(scanResults);
+        }
+    }
+
+    public ScanResult getScanResult(int position) {
+        try {
+            return mScanResults.get(position);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -47,7 +58,11 @@ public class WifiListAdapter extends RecyclerView.Adapter<WifiListAdapter.ViewHo
     // 用来替换视图的内容（由布局管理器调用）
     @Override
     public void onBindViewHolder(WifiListAdapter.ViewHolder holder, int position) {
-        holder.ssid.setText(mScanResults.get(position).SSID);
+        // 信号等级
+        int level = mScanResults.get(position).level;
+        int l = WifiManager.calculateSignalLevel(level, 100);
+
+        holder.ssid.setText(mScanResults.get(position).SSID + "  信号等级：" + l);
     }
 
     // 返回数据集的大小（由布局管理器调用）

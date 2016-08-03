@@ -2,10 +2,34 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!--<item-->
+        <!--android:id="@+id/action_scan_wifi"-->
+        <!--android:orderInCategory="100"-->
+        <!--android:title="扫描Wifi"-->
+        <!--app:showAsAction="never" />-->
+
     <item
-        android:id="@+id/action_scan_wifi"
+        android:id="@+id/action_open_wifi"
         android:orderInCategory="100"
-        android:title="扫描Wifi"
+        android:title="打开WIFI"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_close_wifi"
+        android:orderInCategory="100"
+        android:title="关闭WIFI"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_link1"
+       android:orderInCategory="100"
+        android:title="[测试]连接到 BitMain_office"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_link2"
+       android:orderInCategory="100"
+        android:title="[测试]连接到 BitMain_download"
         app:showAsAction="never" />
 
 </menu>

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_margin="5dp"
     android:background="#FFAAAAAA"
     android:orientation="vertical"
     android:padding="20dp">
@@ -15,10 +16,10 @@
         tools:text="Wifi名字" />
 
     <!--<TextView-->
-        <!--android:id="@+id/device_mac_address"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:textSize="15sp"-->
-        <!--tools:text="MAC地址" />-->
+    <!--android:id="@+id/device_mac_address"-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:textSize="15sp"-->
+    <!--tools:text="MAC地址" />-->
 
 </LinearLayout>
