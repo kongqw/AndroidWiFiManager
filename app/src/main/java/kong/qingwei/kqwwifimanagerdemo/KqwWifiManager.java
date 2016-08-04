@@ -22,7 +22,6 @@ import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
  * WifiConfiguration : https://developer.android.com/reference/android/net/wifi/WifiConfiguration.html
  * ScanResult : https://developer.android.com/reference/android/net/wifi/ScanResult.html
  * WifiInfo : https://developer.android.com/reference/android/net/wifi/WifiInfo.html
- * blog : http://blog.csdn.net/yuanbohx/article/details/8109042
  * Wifi管理
  */
 public class KqwWifiManager {
@@ -82,7 +81,7 @@ public class KqwWifiManager {
     }
 
     /**
-     * 获取Wifi
+     * 获取Wifi列表
      *
      * @return Wifi列表
      */
@@ -191,7 +190,7 @@ public class KqwWifiManager {
     }
 
     /**
-     * 通过NetworkId连接到WIFI
+     * 通过NetworkId连接到WIFI（用于已配置过的WIFI）
      *
      * @param networkId NetworkId
      * @return 是否连接成功
@@ -241,7 +240,9 @@ public class KqwWifiManager {
     }
 
 
-    //网络加密模式
+    /**
+     * 网络加密模式
+     */
     public enum SecurityMode {
         OPEN, WEP, WPA, WPA2
     }
@@ -251,7 +252,7 @@ public class KqwWifiManager {
      *
      * @param SSID     WIFI名字
      * @param Password WIFI密码
-     * @param mode     WIFI类型
+     * @param mode     WIFI加密类型
      * @return 配置
      */
     public WifiConfiguration createWifiConfiguration(String SSID, String Password, SecurityMode mode) {
@@ -353,8 +354,9 @@ public class KqwWifiManager {
         return -1;
     }
 
-
-    // 参考   http://blog.csdn.net/h3c4lenovo/article/details/9627781
+    /**
+     * 广播接收者
+     */
     public static class NetworkBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
