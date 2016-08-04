@@ -41,21 +41,25 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         mKqwWifiManager.setOnWifiConnectListener(new OnWifiConnectListener() {
             @Override
             public void onStart(String SSID) {
+                // 开始
                 buildProgressDialog("正在连接:" + SSID);
             }
 
             @Override
             public void onSuccess() {
+                // 连接成功
                 Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onFailure() {
+                // 连接失败
                 Toast.makeText(MainActivity.this, "连接失败", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onFinish() {
+                // 完成
                 cancelProgressDialog();
 
             }

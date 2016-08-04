@@ -28,7 +28,6 @@ public class KqwWifiManager {
 
     private static final String TAG = "KqwWifiManager";
     private final WifiManager mWifiManager;
-    private WifiInfo mWifiInfo;
     private static OnWifiConnectListener mOnWifiConnectListener;
     private static OnWifiEnabledListener mOnWifiEnabledListener;
     // 缓存正在连接的WIFI名
@@ -68,6 +67,7 @@ public class KqwWifiManager {
 
     /**
      * 判断WIFI是否连接
+     *
      * @return 是否连接
      */
     public boolean isWifiConnected() {
@@ -104,17 +104,59 @@ public class KqwWifiManager {
      * @return 连接结果
      */
     public boolean connectionWifiByPassword(String SSID, String pwd, SecurityMode mode) {
+        Log.i(TAG, "connectionWifiByPassword: 连接网络 SSID = " + SSID + "  pwd = " + pwd + "  mode = " + mode);
+        // 生成配置文件
+        WifiConfiguration addConfig = createWifiConfiguration(SSID, pwd, mode);
+        Log.i(TAG, "connectionWifiByPassword: 生成配置文件: " + addConfig);
+        int netId;
+        // 判断当前网络是否存在
+        WifiConfiguration updateConfig = isExists(addConfig);
+        if (null != updateConfig) {
+            // 更新配置
+            netId = mWifiManager.updateNetwork(updateConfig);
+        } else {
+            // 添加配置
+            netId = mWifiManager.addNetwork(addConfig);
+        }
+        return connectionWifiByNetworkId(SSID, netId);
+    }
+
+    /**
+     * 通过NetworkId连接到WIFI（用于已配置过的WIFI）
+     *
+     * @param networkId NetworkId
+     * @return 是否连接成功
+     */
+    public boolean connectionWifiByNetworkId(String SSID, int networkId) {
         // 连接开始的回调
         if (null != mOnWifiConnectListener) {
             mOnWifiConnectListener.onStart(SSID);
             mWifiState = WIFI_STATE_CONNECTING;
             mConnectingSSID = SSID;
         }
+
+        /*
+         * 判断 NetworkId 是否有效
+         * -1 表示配置参数不正确，密码错误或者其它参数错误
+         */
+        if (-1 == networkId) {
+            // 连接WIFI失败
+            if (null != mOnWifiConnectListener) {
+                // 配置错误
+                mOnWifiConnectListener.onFailure();
+                // 连接完成
+                mOnWifiConnectListener.onFinish();
+                mConnectingSSID = null;
+                mWifiState = WIFI_STATE_NONE;
+            }
+            return false;
+        }
+
         // 判断当前的网络
-        mWifiInfo = mWifiManager.getConnectionInfo();
-        if (null != mWifiInfo) {
+        WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
+        if (null != wifiInfo) {
             // 当前有连接网络
-            if (String.format("\"%s\"", SSID).equals(mWifiInfo.getSSID())) {
+            if (String.format("\"%s\"", SSID).equals(wifiInfo.getSSID())) {
                 if (null != mOnWifiConnectListener) {
                     // 网络已经连接
                     mOnWifiConnectListener.onSuccess();
@@ -126,8 +168,8 @@ public class KqwWifiManager {
                 return true;
             } else {
                 // 断开当前连接
-                boolean isDisconnect = disconnectWifi(mWifiInfo.getNetworkId());
-                Log.i(TAG, "connectionWifiByPassword: " + (isDisconnect ? mWifiInfo.getSSID() + " 已断开" : "断开失败"));
+                boolean isDisconnect = disconnectWifi(wifiInfo.getNetworkId());
+                Log.i(TAG, "connectionWifiByPassword: " + (isDisconnect ? wifiInfo.getSSID() + " 已断开" : "断开失败"));
                 if (!isDisconnect) {
                     // 断开当前网络失败
                     if (null != mOnWifiConnectListener) {
@@ -142,39 +184,8 @@ public class KqwWifiManager {
                 }
             }
         }
-        Log.i(TAG, "connectionWifiByPassword: 连接网络 SSID = " + SSID + "  pwd = " + pwd + "  mode = " + mode);
-        // 生成配置文件
-        WifiConfiguration addConfig = createWifiConfiguration(SSID, pwd, mode);
-        Log.i(TAG, "connectionWifiByPassword: 生成配置文件: " + addConfig);
-
-        int netId;
-        // 判断当前网络是否存在
-        WifiConfiguration updateConfig = isExists(addConfig);
-        if (null != updateConfig) {
-            // 更新
-            int networkId = updateConfig.networkId;
-            netId = mWifiManager.updateNetwork(updateConfig);
-            Log.i(TAG, "connectionWifiByPassword: 网络已经存在，更新配置 netId = " + netId + "   networkId = " + networkId);
-        } else {
-            // 添加
-            netId = mWifiManager.addNetwork(addConfig);
-            Log.i(TAG, "connectionWifiByPassword: 网络不存在，添加配置 netId = " + netId);
-        }
-        // netId值为-1表示新的配置是无效的，一般可能是参数问题，例如密码错误。
-        if (-1 == netId) {
-            // 断开当前网络失败
-            if (null != mOnWifiConnectListener) {
-                // 配置错误
-                mOnWifiConnectListener.onFailure();
-                // 连接完成
-                mOnWifiConnectListener.onFinish();
-                mConnectingSSID = null;
-                mWifiState = WIFI_STATE_NONE;
-            }
-            return false;
-        }
         // 连接WIFI
-        boolean isEnable = mWifiManager.enableNetwork(netId, true);
+        boolean isEnable = mWifiManager.enableNetwork(networkId, true);
         if (!isEnable) {
             // 连接失败
             if (null != mOnWifiConnectListener) {
@@ -187,31 +198,6 @@ public class KqwWifiManager {
             }
         }
         return isEnable;
-    }
-
-    /**
-     * 通过NetworkId连接到WIFI（用于已配置过的WIFI）
-     *
-     * @param networkId NetworkId
-     * @return 是否连接成功
-     */
-    public boolean connectionWifiByNetworkId(int networkId) {
-        // 判断当前的网络
-        mWifiInfo = mWifiManager.getConnectionInfo();
-        if (null != mWifiInfo) {
-            // 当前有连接网络
-            int connectionNetworkId = mWifiInfo.getNetworkId();
-            if (connectionNetworkId == networkId) {
-                Log.i(TAG, "connectionWifiByPassword: 当前已经连接了 networkId =" + networkId);
-                return true;
-            } else {
-                // 断开当前连接
-                boolean isDisconnect = disconnectWifi(connectionNetworkId);
-                Log.i(TAG, "connectionWifiByPassword: " + (isDisconnect ? mWifiInfo.getSSID() + " 已断开" : "断开失败"));
-            }
-        }
-
-        return mWifiManager.enableNetwork(networkId, true);
     }
 
     /**
@@ -308,8 +294,8 @@ public class KqwWifiManager {
             return SecurityMode.WPA;
         } else if (capabilities.contains("WEP")) {
             return SecurityMode.WEP;
-//        } else if (capabilities.contains("EAP")) {
-//            return SecurityMode.WEP;
+            //        } else if (capabilities.contains("EAP")) {
+            //            return SecurityMode.WEP;
         } else {
             //不加密
             return SecurityMode.OPEN;
@@ -338,7 +324,7 @@ public class KqwWifiManager {
     }
 
     /**
-     * 判断该WIFI在系统里有没有配置过
+     * 获取NetworkId
      *
      * @param scanResult 扫描到的WIFI信息
      * @return 如果有配置信息则返回配置的networkId 如果没有配置过则返回-1
