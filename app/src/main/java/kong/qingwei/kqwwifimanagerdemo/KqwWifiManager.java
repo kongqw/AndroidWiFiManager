@@ -3,6 +3,7 @@ package kong.qingwei.kqwwifimanagerdemo;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
@@ -13,6 +14,7 @@ import android.util.Log;
 import java.util.List;
 
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
+import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
 
 /**
  * Created by kqw on 2016/8/2.
@@ -29,6 +31,7 @@ public class KqwWifiManager {
     private final WifiManager mWifiManager;
     private WifiInfo mWifiInfo;
     private static OnWifiConnectListener mOnWifiConnectListener;
+    private static OnWifiEnabledListener mOnWifiEnabledListener;
     // 缓存正在连接的WIFI名
     private static String mConnectingSSID;
 
@@ -37,10 +40,13 @@ public class KqwWifiManager {
     private static final int WIFI_STATE_CONNECTED = 1;
     private static final int WIFI_STATE_CONNECTING = 2;
     private static int mWifiState = WIFI_STATE_NONE;
+    private final ConnectivityManager mConnectivityManager;
 
     public KqwWifiManager(Context context) {
         // 取得WifiManager对象
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+        mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     /**
@@ -58,6 +64,20 @@ public class KqwWifiManager {
     public void closeWifi() {
         if (mWifiManager.isWifiEnabled()) {
             mWifiManager.setWifiEnabled(false);
+        }
+    }
+
+    /**
+     * 判断WIFI是否连接
+     * @return 是否连接
+     */
+    public boolean isWifiConnected() {
+        try {
+            NetworkInfo mWifi = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            return mWifi.isConnected();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
     }
 
@@ -195,7 +215,12 @@ public class KqwWifiManager {
         return mWifiManager.enableNetwork(networkId, true);
     }
 
-    // 断开指定ID的网络
+    /**
+     * 断开WIFI
+     *
+     * @param netId netId
+     * @return 是否断开
+     */
     public boolean disconnectWifi(int netId) {
         boolean isDisable = mWifiManager.disableNetwork(netId);
         boolean isDisconnect = mWifiManager.disconnect();
@@ -344,12 +369,18 @@ public class KqwWifiManager {
                             break;
                         case WifiManager.WIFI_STATE_ENABLED:
                             Log.i(TAG, "onReceive: WIFI 已打开");
+                            if (null != mOnWifiEnabledListener) {
+                                mOnWifiEnabledListener.onWifiEnabled(true);
+                            }
                             break;
                         case WifiManager.WIFI_STATE_DISABLING:
                             Log.i(TAG, "onReceive: 正在关闭 WIFI...");
                             break;
                         case WifiManager.WIFI_STATE_DISABLED:
                             Log.i(TAG, "onReceive: WIFI 已关闭");
+                            if (null != mOnWifiEnabledListener) {
+                                mOnWifiEnabledListener.onWifiEnabled(false);
+                            }
                             break;
                         case WifiManager.WIFI_STATE_UNKNOWN:
                             Log.i(TAG, "onReceive: WIFI 状态未知!");
@@ -391,5 +422,14 @@ public class KqwWifiManager {
      */
     public void setOnWifiConnectListener(OnWifiConnectListener listener) {
         mOnWifiConnectListener = listener;
+    }
+
+    /**
+     * 添加WIFI开关的回调
+     *
+     * @param listener 回调接口
+     */
+    public void setOnWifiEnabledListener(OnWifiEnabledListener listener) {
+        mOnWifiEnabledListener = listener;
     }
 }

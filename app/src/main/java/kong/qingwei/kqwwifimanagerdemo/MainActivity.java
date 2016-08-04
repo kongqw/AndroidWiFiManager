@@ -19,6 +19,7 @@ import java.util.List;
 
 import kong.qingwei.kqwwifimanagerdemo.adapter.WifiListAdapter;
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
+import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
 import kong.qingwei.kqwwifimanagerdemo.view.KqwRecyclerView;
 
 public class MainActivity extends AppCompatActivity implements KqwRecyclerView.OnItemClickListener {
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
     private KqwWifiManager mKqwWifiManager;
     private WifiListAdapter mAdapter;
     private ProgressDialog progressDialog;
+    private KqwRecyclerView mKqwRecyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         mKqwWifiManager.setOnWifiConnectListener(new OnWifiConnectListener() {
             @Override
             public void onStart(String SSID) {
-                buildProgressDialog(SSID);
+                buildProgressDialog("正在连接:" + SSID);
             }
 
             @Override
@@ -58,10 +60,18 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
 
             }
         });
-        // 打开Wifi
-        mKqwWifiManager.openWifi();
+        mKqwWifiManager.setOnWifiEnabledListener(new OnWifiEnabledListener() {
+            @Override
+            public void onWifiEnabled(boolean enabled) {
+                if (enabled) {
+                    // WIFI可用
+                    initWifiList();
+                }
+            }
+        });
+
         // WIFI列表
-        KqwRecyclerView mKqwRecyclerView = (KqwRecyclerView) findViewById(R.id.kqwRecyclerView);
+        mKqwRecyclerView = (KqwRecyclerView) findViewById(R.id.kqwRecyclerView);
         if (mKqwRecyclerView != null) {
             // 如果数据的填充不会改变RecyclerView的布局大小，那么这个设置可以提高RecyclerView的性能
             mKqwRecyclerView.setHasFixedSize(true);
@@ -69,10 +79,27 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
             RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
             mKqwRecyclerView.setLayoutManager(mLayoutManager);
             mKqwRecyclerView.setOnItemClickListener(this);
-            List<ScanResult> scanResults = mKqwWifiManager.getWifiList();
-            mAdapter = new WifiListAdapter(scanResults);
-            mKqwRecyclerView.setAdapter(mAdapter);
         }
+
+
+        if (mKqwWifiManager.isWifiConnected()) {
+            initWifiList();
+        } else {
+            // 打开Wifi
+            mKqwWifiManager.openWifi();
+            buildProgressDialog("正在打开WIFI...");
+        }
+    }
+
+
+    /**
+     * 显示WIFI列表
+     */
+    public void initWifiList() {
+        List<ScanResult> scanResults = mKqwWifiManager.getWifiList();
+        mAdapter = new WifiListAdapter(scanResults);
+        mKqwRecyclerView.setAdapter(mAdapter);
+        cancelProgressDialog();
     }
 
 
