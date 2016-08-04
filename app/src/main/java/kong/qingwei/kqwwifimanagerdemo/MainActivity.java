@@ -1,5 +1,6 @@
 package kong.qingwei.kqwwifimanagerdemo;
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.net.wifi.ScanResult;
 import android.support.v7.app.AlertDialog;
@@ -17,14 +18,15 @@ import android.widget.Toast;
 import java.util.List;
 
 import kong.qingwei.kqwwifimanagerdemo.adapter.WifiListAdapter;
+import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
 import kong.qingwei.kqwwifimanagerdemo.view.KqwRecyclerView;
 
 public class MainActivity extends AppCompatActivity implements KqwRecyclerView.OnItemClickListener {
 
     private static final String TAG = "MainActivity";
     private KqwWifiManager mKqwWifiManager;
-    private KqwRecyclerView mKqwRecyclerView;
     private WifiListAdapter mAdapter;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,10 +36,32 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         setSupportActionBar(toolbar);
 
         mKqwWifiManager = new KqwWifiManager(this);
+        mKqwWifiManager.setOnWifiConnectListener(new OnWifiConnectListener() {
+            @Override
+            public void onStart(String SSID) {
+                buildProgressDialog(SSID);
+            }
+
+            @Override
+            public void onSuccess() {
+                Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure() {
+                Toast.makeText(MainActivity.this, "连接失败", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFinish() {
+                cancelProgressDialog();
+
+            }
+        });
         // 打开Wifi
         mKqwWifiManager.openWifi();
-
-        mKqwRecyclerView = (KqwRecyclerView) findViewById(R.id.kqwRecyclerView);
+        // WIFI列表
+        KqwRecyclerView mKqwRecyclerView = (KqwRecyclerView) findViewById(R.id.kqwRecyclerView);
         if (mKqwRecyclerView != null) {
             // 如果数据的填充不会改变RecyclerView的布局大小，那么这个设置可以提高RecyclerView的性能
             mKqwRecyclerView.setHasFixedSize(true);
@@ -99,25 +123,24 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         final int networkId = mKqwWifiManager.getNetworkIdFromConfig(scanResult);
         Log.i(TAG, "showDialog: networkId = " + networkId);
         final String SSID = scanResult.SSID;
-            // 系统没有保存该网络的配置
-            final EditText editText = new EditText(this);
-            editText.setHint("请输入密码");
-            final KqwWifiManager.SecurityMode securityMode = mKqwWifiManager.getSecurityMode(scanResult);
+        // 系统没有保存该网络的配置
+        final EditText editText = new EditText(this);
+        editText.setHint("请输入密码");
+        final KqwWifiManager.SecurityMode securityMode = mKqwWifiManager.getSecurityMode(scanResult);
 
-            new AlertDialog.Builder(this)
-                    .setTitle("链接WIFI:" + SSID)
-                    .setView(editText)
-                    .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            String pwd = editText.getText().toString();
-                            boolean isConnected = mKqwWifiManager.connectionWifiByPassword(SSID, pwd, securityMode);
-                            Toast.makeText(MainActivity.this, isConnected ? "连接成功" : "连接失败", Toast.LENGTH_SHORT).show();
-
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+        new AlertDialog.Builder(this)
+                .setTitle("链接WIFI:" + SSID)
+                .setView(editText)
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String pwd = editText.getText().toString();
+                        boolean isConnected = mKqwWifiManager.connectionWifiByPassword(SSID, pwd, securityMode);
+                        // Toast.makeText(MainActivity.this, isConnected ? "连接成功" : "连接失败", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
         /*if (-1 == networkId) {
         } else {
             // 系统保存过该网络的配置
@@ -143,4 +166,28 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         }*/
     }
 
+
+    /**
+     * 显示加载框
+     */
+    public void buildProgressDialog(String text) {
+        if (progressDialog == null) {
+            progressDialog = new ProgressDialog(this);
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        }
+        progressDialog.setMessage(text);
+        // progressDialog.setCancelable(false);
+        progressDialog.setCancelable(true);
+        progressDialog.show();
+    }
+
+    /**
+     * 关闭下载框
+     */
+    public void cancelProgressDialog() {
+        if (progressDialog != null)
+            if (progressDialog.isShowing()) {
+                progressDialog.dismiss();
+            }
+    }
 }

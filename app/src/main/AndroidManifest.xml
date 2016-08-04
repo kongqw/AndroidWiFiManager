@@ -29,8 +29,6 @@
         <!-- 监听网络状态的广播接收者 -->
         <receiver android:name=".KqwWifiManager$NetworkBroadcastReceiver" >
             <intent-filter>
-                <!--<action android:name="android.net.conn.CONNECTIVITY_CHANGE" />-->
-                <!--<action android:name="android.net.wifi.WIFI_STATE_CHANGED" />-->
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
                 <action android:name="android.net.wifi.STATE_CHANGE" />
