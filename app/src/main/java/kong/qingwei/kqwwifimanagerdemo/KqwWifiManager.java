@@ -6,15 +6,18 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 
+
 import java.util.List;
 
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
+import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiScanResultsListener;
 
 /**
  * Created by kqw on 2016/8/2.
@@ -26,10 +29,11 @@ import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
  */
 public class KqwWifiManager {
 
-    private static final String TAG = "KqwWifiManager";
-    private final WifiManager mWifiManager;
+    private static final String TAG = "RobotWifiManager";
+    private static WifiManager mWifiManager;
     private static OnWifiConnectListener mOnWifiConnectListener;
     private static OnWifiEnabledListener mOnWifiEnabledListener;
+    private static OnWifiScanResultsListener mOnWifiScanResultsListener;
     // 缓存正在连接的WIFI名
     private static String mConnectingSSID;
 
@@ -38,7 +42,7 @@ public class KqwWifiManager {
     private static final int WIFI_STATE_CONNECTED = 1;
     private static final int WIFI_STATE_CONNECTING = 2;
     private static int mWifiState = WIFI_STATE_NONE;
-    private final ConnectivityManager mConnectivityManager;
+    private static ConnectivityManager mConnectivityManager;
 
     public KqwWifiManager(Context context) {
         // 取得WifiManager对象
@@ -70,7 +74,7 @@ public class KqwWifiManager {
      *
      * @return 是否连接
      */
-    public boolean isWifiConnected() {
+    public static boolean isWifiConnected() {
         try {
             NetworkInfo mWifi = mConnectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
             return mWifi.isConnected();
@@ -81,13 +85,52 @@ public class KqwWifiManager {
     }
 
     /**
+     * 获取WIFI的开关状态
+     *
+     * @return WIFI的可用状态
+     */
+    public boolean isWifiEnabled() {
+        try {
+            return mWifiManager.isWifiEnabled();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * 获取当前正在连接的WIFI信息
+     *
+     * @return 当前正在连接的WIFI信息
+     */
+    public WifiInfo getConnectionInfo() {
+        try {
+            return mWifiManager.getConnectionInfo();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * 扫描拍WIFI列表
+     */
+    public void startScan(OnWifiScanResultsListener listener) {
+        try {
+            mOnWifiScanResultsListener = listener;
+            mWifiManager.startScan();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * 获取Wifi列表
      *
      * @return Wifi列表
      */
-    public List<ScanResult> getWifiList() {
+    private static List<ScanResult> getScanResults() {
         try {
-            mWifiManager.startScan();
             // 得到扫描结果
             return mWifiManager.getScanResults();
         } catch (Exception e) {
@@ -134,7 +177,6 @@ public class KqwWifiManager {
             mWifiState = WIFI_STATE_CONNECTING;
             mConnectingSSID = SSID;
         }
-
         /*
          * 判断 NetworkId 是否有效
          * -1 表示配置参数不正确，密码错误或者其它参数错误
@@ -151,15 +193,14 @@ public class KqwWifiManager {
             }
             return false;
         }
-
         // 判断当前的网络
-        WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
+        WifiInfo wifiInfo = getConnectionInfo();
         if (null != wifiInfo) {
             // 当前有连接网络
             if (String.format("\"%s\"", SSID).equals(wifiInfo.getSSID())) {
                 if (null != mOnWifiConnectListener) {
                     // 网络已经连接
-                    mOnWifiConnectListener.onSuccess();
+                    mOnWifiConnectListener.onSuccess(wifiInfo.getSSID());
                     // 连接完成
                     mOnWifiConnectListener.onFinish();
                     mConnectingSSID = null;
@@ -169,7 +210,6 @@ public class KqwWifiManager {
             } else {
                 // 断开当前连接
                 boolean isDisconnect = disconnectWifi(wifiInfo.getNetworkId());
-                Log.i(TAG, "connectionWifiByPassword: " + (isDisconnect ? wifiInfo.getSSID() + " 已断开" : "断开失败"));
                 if (!isDisconnect) {
                     // 断开当前网络失败
                     if (null != mOnWifiConnectListener) {
@@ -350,6 +390,7 @@ public class KqwWifiManager {
                 String action = intent.getAction();
                 // 监听WIFI的启用状态
                 if (WifiManager.WIFI_STATE_CHANGED_ACTION.equals(action)) {
+                    Log.i(TAG, "onReceive:1 action = " + action);
                     int wifiState = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, 0);
                     switch (wifiState) {
                         case WifiManager.WIFI_STATE_ENABLING:
@@ -377,24 +418,85 @@ public class KqwWifiManager {
                             break;
                     }
                 }
+                // WIFI扫描完成
+                if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(action)) {
+                    if (null != mOnWifiScanResultsListener) {
+                        mOnWifiScanResultsListener.onScanResults(getScanResults());
+                    }
+                }
                 // WIFI 连接状态的监听（只有WIFI可用的时候，监听才会有效）
                 if (WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(action)) {
+                    Log.i(TAG, "onReceive:2 action = " + action);
                     NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                     if (null != networkInfo && networkInfo.isConnected()) {
                         WifiInfo wifiInfo = intent.getParcelableExtra(WifiManager.EXTRA_WIFI_INFO);
-                        if (null != wifiInfo) {
+                        if (null != wifiInfo && isWifiConnected()) {
                             if (wifiInfo.getSSID().equals(String.format("\"%s\"", mConnectingSSID)) && null != mOnWifiConnectListener) {
                                 Log.i(TAG, "onReceive: wifiInfo.getSSID() = " + wifiInfo.getSSID() + "   mConnectingSSID = " + mConnectingSSID);
                                 Log.i(TAG, "onReceive: WIFI 连接成功");
-                                if (mWifiState != WIFI_STATE_CONNECTED) {
+                                if (mWifiState == WIFI_STATE_CONNECTING) {
                                     mWifiState = WIFI_STATE_CONNECTED;
                                     mConnectingSSID = null;
                                     // WIFI连接成功
-                                    mOnWifiConnectListener.onSuccess();
+                                    mOnWifiConnectListener.onSuccess(wifiInfo.getSSID());
                                     mOnWifiConnectListener.onFinish();
                                 }
                             }
                         }
+                    }
+                }
+
+                if (intent.getAction().equals(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION)) {
+                    WifiInfo wifiInfo = mWifiManager.getConnectionInfo();
+                    SupplicantState state = wifiInfo.getSupplicantState();
+                    switch (state) {
+                        case INTERFACE_DISABLED: // 接口禁用
+                            Log.i(TAG, "onReceive: INTERFACE_DISABLED 接口禁用");
+                            break;
+                        case DISCONNECTED:// 断开连接
+                        case INACTIVE: // 不活跃的
+                            Log.i(TAG, "onReceive: INACTIVE 不活跃的 DISCONNECTED:// 断开连接");
+                            if (null != mOnWifiConnectListener && mWifiState == WIFI_STATE_CONNECTING) {
+                                // 断开当前网络失败
+                                mOnWifiConnectListener.onFailure();
+                                // 连接完成
+                                mOnWifiConnectListener.onFinish();
+                                mConnectingSSID = null;
+                                mWifiState = WIFI_STATE_NONE;
+                            }
+                            break;
+                        case SCANNING: // 正在扫描
+                            Log.i(TAG, "onReceive: SCANNING 正在扫描");
+                            break;
+                        case AUTHENTICATING: // 正在验证
+                            Log.i(TAG, "onReceive: AUTHENTICATING: // 正在验证");
+                            break;
+                        case ASSOCIATING: // 正在关联
+                            Log.i(TAG, "onReceive: ASSOCIATING: // 正在关联");
+                            break;
+                        case ASSOCIATED: // 已经关联
+                            Log.i(TAG, "onReceive: ASSOCIATED: // 已经关联");
+                            break;
+                        case FOUR_WAY_HANDSHAKE:
+                            Log.i(TAG, "onReceive: FOUR_WAY_HANDSHAKE:");
+                            break;
+                        case GROUP_HANDSHAKE:
+                            Log.i(TAG, "onReceive: GROUP_HANDSHAKE:");
+                            break;
+                        case COMPLETED: // 完成
+                            Log.i(TAG, "onReceive: COMPLETED: // 完成");
+                            break;
+                        case DORMANT:
+                            Log.i(TAG, "onReceive: DORMANT:");
+                            break;
+                        case UNINITIALIZED: // 未初始化
+                            Log.i(TAG, "onReceive: UNINITIALIZED: // 未初始化");
+                            break;
+                        case INVALID: // 无效的
+                            Log.i(TAG, "onReceive: INVALID: // 无效的");
+                            break;
+                        default:
+                            break;
                     }
                 }
             } catch (Exception e) {

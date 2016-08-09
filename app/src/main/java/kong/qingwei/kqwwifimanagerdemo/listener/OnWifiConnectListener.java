@@ -10,7 +10,7 @@ public interface OnWifiConnectListener {
     void onStart(String SSID);
 
     // 成功
-    void onSuccess();
+    void onSuccess(String SSID);
 
     // 失败
     void onFailure();

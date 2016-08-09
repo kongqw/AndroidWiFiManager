@@ -14,7 +14,8 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity"
+        <activity
+            android:name=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -24,11 +25,13 @@
         </activity>
 
         <!-- 监听网络状态的广播接收者 -->
-        <receiver android:name=".KqwWifiManager$NetworkBroadcastReceiver" >
+        <receiver android:name=".KqwWifiManager$NetworkBroadcastReceiver">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
                 <action android:name="android.net.wifi.STATE_CHANGE" />
+                <!-- AP扫描完成，客户端得到可用的结果集 -->
+                <action android:name="android.net.wifi.SCAN_RESULTS" />
             </intent-filter>
         </receiver>
     </application>

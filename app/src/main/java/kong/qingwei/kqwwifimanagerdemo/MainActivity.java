@@ -20,6 +20,7 @@ import java.util.List;
 import kong.qingwei.kqwwifimanagerdemo.adapter.WifiListAdapter;
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
 import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
+import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiScanResultsListener;
 import kong.qingwei.kqwwifimanagerdemo.view.KqwRecyclerView;
 
 public class MainActivity extends AppCompatActivity implements KqwRecyclerView.OnItemClickListener {
@@ -46,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
             }
 
             @Override
-            public void onSuccess() {
+            public void onSuccess(String SSID) {
                 // 连接成功
                 Toast.makeText(MainActivity.this, "连接成功", Toast.LENGTH_SHORT).show();
             }
@@ -86,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         }
 
 
-        if (mKqwWifiManager.isWifiConnected()) {
+        if (KqwWifiManager.isWifiConnected()) {
             initWifiList();
         } else {
             // 打开Wifi
@@ -100,10 +101,14 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
      * 显示WIFI列表
      */
     public void initWifiList() {
-        List<ScanResult> scanResults = mKqwWifiManager.getWifiList();
-        mAdapter = new WifiListAdapter(scanResults);
-        mKqwRecyclerView.setAdapter(mAdapter);
-        cancelProgressDialog();
+        mKqwWifiManager.startScan(new OnWifiScanResultsListener() {
+            @Override
+            public void onScanResults(List<ScanResult> scanResults) {
+                mAdapter = new WifiListAdapter(scanResults);
+                mKqwRecyclerView.setAdapter(mAdapter);
+                cancelProgressDialog();
+            }
+        });
     }
 
 
