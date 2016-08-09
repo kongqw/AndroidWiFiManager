@@ -212,18 +212,16 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
             progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         }
         progressDialog.setMessage(text);
-        // progressDialog.setCancelable(false);
         progressDialog.setCancelable(true);
         progressDialog.show();
     }
 
     /**
-     * 关闭下载框
+     * 关闭下加载框
      */
     public void cancelProgressDialog() {
-        if (progressDialog != null)
-            if (progressDialog.isShowing()) {
-                progressDialog.dismiss();
-            }
+        if (null != progressDialog && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
     }
 }
