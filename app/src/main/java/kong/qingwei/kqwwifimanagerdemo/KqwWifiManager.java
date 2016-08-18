@@ -257,7 +257,7 @@ public class KqwWifiManager {
      * @param netId netId
      * @return 是否删除成功
      */
-    private boolean deleteConfig(int netId) {
+    public boolean deleteConfig(int netId) {
         boolean isDisable = mWifiManager.disableNetwork(netId);
         boolean isRemove = mWifiManager.removeNetwork(netId);
         boolean isSave = mWifiManager.saveConfiguration();

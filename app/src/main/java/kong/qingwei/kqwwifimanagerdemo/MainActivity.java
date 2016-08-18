@@ -243,6 +243,18 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
                         showConnectDialog(scanResult);
                     }
                 })
+                .setNegativeButton("删除配置", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        boolean isDelete = mKqwWifiManager.deleteConfig(networkId);
+                        Snackbar.make(mKqwRecyclerView, isDelete ? "配置已删除" : "删除失败", Snackbar.LENGTH_SHORT).show();
+                        if (isDelete) {
+                            // 配置删除以后关闭WIFI
+                            // 现在的Bug，删除配置以后，要重启WIFI才能正常连接WIFI
+                            mKqwWifiManager.closeWifi(mOnWifiEnabledListener);
+                        }
+                    }
+                })
                 .show();
     }
 
