@@ -9,6 +9,9 @@ public interface OnWifiConnectListener {
     // 开始
     void onStart(String SSID);
 
+    // 连接信息
+    void onConnectingMessage(String message);
+
     // 成功
     void onSuccess(String SSID);
 

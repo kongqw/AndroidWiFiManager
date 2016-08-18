@@ -34,10 +34,18 @@ public class WifiListAdapter extends RecyclerView.Adapter<WifiListAdapter.ViewHo
 
     // 初始化
     public WifiListAdapter(List<ScanResult> scanResults) {
+        mScanResults = new ArrayList<>();
         if (null != scanResults) {
-            mScanResults = new ArrayList<>();
             mScanResults.addAll(scanResults);
         }
+    }
+
+    /**
+     * 清空数据
+     */
+    public void cleanData() {
+        mScanResults = new ArrayList<>();
+        notifyDataSetChanged();
     }
 
     public ScanResult getScanResult(int position) {

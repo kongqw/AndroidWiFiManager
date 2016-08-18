@@ -10,6 +10,12 @@ import java.util.List;
  */
 public interface OnWifiScanResultsListener {
 
+    // 开始
+    void onStart();
+
     // 扫描结果
     void onScanResults(List<ScanResult> scanResults);
+
+    // 结束
+    void onFinish();
 }
