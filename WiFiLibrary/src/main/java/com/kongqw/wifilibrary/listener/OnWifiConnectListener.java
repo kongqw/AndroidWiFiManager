@@ -1,4 +1,4 @@
-package kong.qingwei.kqwwifimanagerdemo.listener;
+package com.kongqw.wifilibrary.listener;
 
 /**
  * Created by kqw on 2016/8/4.

@@ -1,127 +1,44 @@
 package kong.qingwei.kqwwifimanagerdemo;
 
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
+import android.Manifest;
 import android.net.wifi.ScanResult;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.net.wifi.WifiConfiguration;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
-import android.widget.EditText;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.kongqw.wifilibrary.WiFiManager;
 
 import java.util.List;
 
 import kong.qingwei.kqwwifimanagerdemo.adapter.WifiListAdapter;
-import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiConnectListener;
-import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiEnabledListener;
-import kong.qingwei.kqwwifimanagerdemo.listener.OnWifiScanResultsListener;
-import kong.qingwei.kqwwifimanagerdemo.view.KqwRecyclerView;
+import kong.qingwei.kqwwifimanagerdemo.view.ConnectWifiDialog;
 
-public class MainActivity extends AppCompatActivity implements KqwRecyclerView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
 
-    private KqwWifiManager mKqwWifiManager;
-    private WifiListAdapter mAdapter;
-    private ProgressDialog progressDialog;
-    private KqwRecyclerView mKqwRecyclerView;
-    // 要连接的WIFI
-    private ScanResult mScanResult;
+    private static final String TAG = "MainActivity";
 
-    /**
-     * WIFI可用状态的回调
-     */
-    private OnWifiEnabledListener mOnWifiEnabledListener = new OnWifiEnabledListener() {
-        @Override
-        public void onStart(boolean isOpening) {
-            showProgressDialog(isOpening ? "正在打开WIFI" : "正在关闭WIFI");
-        }
+    private ListView mWifiList;
+    private SwipeRefreshLayout mSwipeLayout;
+    private PermissionsManager mPermissionsManager;
 
-        @Override
-        public void onWifiEnabled(boolean enabled) {
-            if (enabled) {
-                // WIFI可用以后刷新WIFI列表
-                mKqwWifiManager.startScan(mOnWifiScanResultsListener);
-            } else {
-                // 情况列表数据
-                mAdapter.cleanData();
-            }
-            Snackbar.make(mKqwRecyclerView, enabled ? "WIFI已经打开" : "WIFI已经关闭", Snackbar.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onFinish() {
-            dismissProgressDialog();
-        }
+    // 所需的全部权限
+    static final String[] PERMISSIONS = new String[]{
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
     };
-
-    /**
-     * 扫描附近的WIFI列表的回调
-     */
-    private OnWifiScanResultsListener mOnWifiScanResultsListener = new OnWifiScanResultsListener() {
-        @Override
-        public void onStart() {
-            showProgressDialog("正在扫描附近的WIFI");
-        }
-
-        @Override
-        public void onScanResults(List<ScanResult> scanResults) {
-            // 扫描到结果
-            mAdapter = new WifiListAdapter(scanResults);
-            mKqwRecyclerView.setAdapter(mAdapter);
-        }
-
-        @Override
-        public void onFinish() {
-            dismissProgressDialog();
-        }
-    };
-
-    /**
-     * WIFI连接的回调
-     */
-    private OnWifiConnectListener mOnWifiConnectListener = new OnWifiConnectListener() {
-        @Override
-        public void onStart(String SSID) {
-            // 开始
-            showProgressDialog("准备连接...");
-        }
-
-        @Override
-        public void onConnectingMessage(String message) {
-            showProgressDialog(message);
-        }
-
-        @Override
-        public void onSuccess(String SSID) {
-            // 连接成功
-            Snackbar.make(mKqwRecyclerView, SSID + " 连接成功", Snackbar.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onFailure() {
-            // 连接失败
-            Snackbar.make(mKqwRecyclerView, "连接失败", Snackbar.LENGTH_LONG).setAction("重新连接", new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (null != mScanResult) {
-                        showConnectDialog(mScanResult);
-                    }
-                }
-            }).show();
-        }
-
-        @Override
-        public void onFinish() {
-            // 完成
-            dismissProgressDialog();
-        }
-    };
+    private final int GET_WIFI_LIST_REQUEST_CODE = 0;
+    private WiFiManager mWiFiManager;
+    private WifiListAdapter mWifiListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,153 +47,115 @@ public class MainActivity extends AppCompatActivity implements KqwRecyclerView.O
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        mKqwWifiManager = new KqwWifiManager(this);
-
+        // Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
+        Toast.makeText(getApplicationContext(),
+                "Build.VERSION.SDK_INT = " + Build.VERSION.SDK_INT +
+                        "\nBuild.VERSION_CODES.LOLLIPOP = " + Build.VERSION_CODES.LOLLIPOP,
+                Toast.LENGTH_SHORT).show();
+        // 下拉刷新
+        mSwipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
+        mSwipeLayout.setOnRefreshListener(this);
         // WIFI列表
-        mKqwRecyclerView = (KqwRecyclerView) findViewById(R.id.kqwRecyclerView);
-        if (mKqwRecyclerView != null) {
-            // 如果数据的填充不会改变RecyclerView的布局大小，那么这个设置可以提高RecyclerView的性能
-            mKqwRecyclerView.setHasFixedSize(true);
-            // 设置这个RecyclerView是线性布局
-            RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
-            mKqwRecyclerView.setLayoutManager(mLayoutManager);
-            mKqwRecyclerView.setOnItemClickListener(this);
-        }
-
-        // 判断WIFI是否可用
-        if (mKqwWifiManager.isWifiEnabled()) {
-            // WIFI可用，刷新WIFI列表
-            mKqwWifiManager.startScan(mOnWifiScanResultsListener);
-        } else {
-            // 打开WIFI
-            mKqwWifiManager.openWifi(mOnWifiEnabledListener);
-        }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.setting, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_open_wifi) {
-            // 打开WIFI
-            mKqwWifiManager.openWifi(mOnWifiEnabledListener);
-            return true;
-        } else if (id == R.id.action_close_wifi) {
-            // 关闭WIFI
-            mKqwWifiManager.closeWifi(mOnWifiEnabledListener);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    /**
-     * Wifi 列表的Item被点击
-     *
-     * @param v v
-     */
-    @Override
-    public void onItemClick(RecyclerView.ViewHolder v) {
-        mScanResult = mAdapter.getScanResult(v.getAdapterPosition());
-        if (null != mScanResult) {
-            // showConnectDialog(mScanResult);
-            int networkId = mKqwWifiManager.getNetworkIdFromConfig(mScanResult);
-            if (-1 == networkId) {
-                // WIFI没有配置过，只能重新输入密码进行连接
-                showConnectDialog(mScanResult);
-            } else {
-                // WIFI 配置过
-                showConnectedDialog(mScanResult, networkId);
+        mWifiList = (ListView) findViewById(R.id.wifi_list);
+        mWifiList.setEmptyView(findViewById(R.id.empty_view));
+        mWifiListAdapter = new WifiListAdapter(getApplicationContext());
+        mWifiList.setAdapter(mWifiListAdapter);
+        mWifiList.setOnItemClickListener(this);
+        mWifiList.setOnItemLongClickListener(this);
+        // WIFI管理器
+        mWiFiManager = new WiFiManager(getApplicationContext());
+        // 动态权限管理器
+        mPermissionsManager = new PermissionsManager(this) {
+            @Override
+            public void authorized(int requestCode) {
+                if (GET_WIFI_LIST_REQUEST_CODE == requestCode) {
+                    // 获取WIFI列表
+                    List<ScanResult> scanResults = mWiFiManager.getScanResults();
+                    // 刷新界面
+                    mWifiListAdapter.refreshData(scanResults);
+                }
             }
+
+            @Override
+            public void noAuthorization(int requestCode, String[] lacksPermissions) {
+
+            }
+        };
+
+        // 请求WIFI列表
+        mPermissionsManager.checkPermissions(GET_WIFI_LIST_REQUEST_CODE, PERMISSIONS);
+
+
+        List<WifiConfiguration> wifiConfigurations = mWiFiManager.getConfiguredNetworks();
+        for (WifiConfiguration wifiConfiguration : wifiConfigurations) {
+            Log.i(TAG, "onCreate: ----------------");
+            Log.i(TAG, "SSID: " + wifiConfiguration.SSID);
+            Log.i(TAG, "wepKeys: " + wifiConfiguration.wepKeys[0]);
+            Log.i(TAG, "preSharedKey: " + wifiConfiguration.preSharedKey);
         }
     }
 
-    /**
-     * 输入密码的对话框
-     *
-     * @param scanResult 要连接的WIFI
-     */
-    public void showConnectDialog(@NonNull final ScanResult scanResult) {
-        final String SSID = scanResult.SSID;
-        // 系统没有保存该网络的配置
-        final EditText editText = new EditText(this);
-        editText.setHint("请输入密码");
-        new AlertDialog.Builder(this)
-                .setTitle("链接WIFI:" + SSID)
-                .setView(editText)
-                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        String pwd = editText.getText().toString();
-                        mKqwWifiManager.connectionWifiByPassword(scanResult, pwd, mOnWifiConnectListener);
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
+    @Override
+    public void onRefresh() {
+        Toast.makeText(getApplicationContext(), "触发下拉刷新", Toast.LENGTH_SHORT).show();
+        mWiFiManager.startScan();
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeLayout.setRefreshing(false);
+            }
+        }, 2000);
     }
 
-    /**
-     * 直接连接的对话框
-     *
-     * @param scanResult 要连接的网络
-     * @param networkId  NetworkId
-     */
-    public void showConnectedDialog(@NonNull final ScanResult scanResult, final int networkId) {
-        final String SSID = scanResult.SSID;
-        // 系统保存过该网络的配置
-        new AlertDialog.Builder(this)
-                .setTitle("网络配置过")
-                .setMessage("是否直接连接到：" + SSID)
-                .setPositiveButton("直接连接", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        mKqwWifiManager.connectionWifiByNetworkId(SSID, networkId, mOnWifiConnectListener);
-                    }
-                })
-                .setNeutralButton("重新输入密码连接", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        showConnectDialog(scanResult);
-                    }
-                })
-                .setNegativeButton("删除配置", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        boolean isDelete = mKqwWifiManager.deleteConfig(networkId);
-                        Snackbar.make(mKqwRecyclerView, isDelete ? "配置已删除" : "删除失败", Snackbar.LENGTH_SHORT).show();
-                        if (isDelete) {
-                            // 配置删除以后关闭WIFI
-                            // 现在的Bug，删除配置以后，要重启WIFI才能正常连接WIFI
-                            mKqwWifiManager.closeWifi(mOnWifiEnabledListener);
-                        }
-                    }
-                })
-                .show();
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        // 复查权限
+        mPermissionsManager.recheckPermissions(requestCode, permissions, grantResults);
     }
 
-    /**
-     * 显示加载框
-     */
-    private void showProgressDialog(String message) {
-        if (progressDialog == null) {
-            progressDialog = new ProgressDialog(this);
-            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        final ScanResult scanResult = (ScanResult) mWifiListAdapter.getItem(position);
+        switch (mWiFiManager.getSecurityMode(scanResult)) {
+            case WPA:
+            case WPA2:
+                new ConnectWifiDialog(this) {
+
+                    @Override
+                    public void connect(String password) {
+                        Toast.makeText(getApplicationContext(), "WPA2 连接WIFI ： " + password, Toast.LENGTH_SHORT).show();
+                        mWiFiManager.connectWPA2Network(scanResult.SSID, password);
+                    }
+                }.setSsid(scanResult.SSID).show();
+                break;
+            case WEP:
+                new ConnectWifiDialog(this) {
+
+                    @Override
+                    public void connect(String password) {
+                        Toast.makeText(getApplicationContext(), "WEP 连接WIFI ： " + password, Toast.LENGTH_SHORT).show();
+                        mWiFiManager.connectWEPNetwork(scanResult.SSID, password);
+                    }
+                }.setSsid(scanResult.SSID).show();
+                break;
+            case OPEN: // 开放网络
+                Toast.makeText(getApplicationContext(), "OPEN 连接开放网络", Toast.LENGTH_SHORT).show();
+                mWiFiManager.connectOpenNetwork(scanResult.SSID);
+                break;
         }
-        progressDialog.setMessage(message);
-        progressDialog.setCancelable(true);
-        progressDialog.show();
     }
 
-    /**
-     * 关闭下加载框
-     */
-    private void dismissProgressDialog() {
-        if (null != progressDialog && progressDialog.isShowing()) {
-            progressDialog.dismiss();
+    @Override
+    public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+        ScanResult scanResult = (ScanResult) mWifiListAdapter.getItem(position);
+        WifiConfiguration wifiConfiguration = mWiFiManager.getConfigFromConfiguredNetworksBySsid(scanResult.SSID);
+        if (null != wifiConfiguration) {
+            boolean isDeleted = mWiFiManager.deleteConfig(wifiConfiguration.networkId);
+            Toast.makeText(getApplicationContext(), isDeleted ? "配置删除成功" : "配置删除失败", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "该网络还没有配置过", Toast.LENGTH_SHORT).show();
         }
+        return true;
     }
 }

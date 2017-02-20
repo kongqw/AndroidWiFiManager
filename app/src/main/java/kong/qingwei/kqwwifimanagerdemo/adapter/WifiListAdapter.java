@@ -1,11 +1,12 @@
 package kong.qingwei.kqwwifimanagerdemo.adapter;
 
+import android.content.Context;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -17,65 +18,61 @@ import kong.qingwei.kqwwifimanagerdemo.R;
  * Created by kqw on 2016/8/2.
  * Wifi列表的数据适配器
  */
-public class WifiListAdapter extends RecyclerView.Adapter<WifiListAdapter.ViewHolder> {
+public class WifiListAdapter extends BaseAdapter {
 
-    private ArrayList<ScanResult> mScanResults;
+    private List<ScanResult> scanResults;
+    private Context mContext;
 
-    // RecyclerView.ViewHolder
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-
-        private final TextView ssid;
-
-        public ViewHolder(View v) {
-            super(v);
-            ssid = (TextView) v.findViewById(R.id.ssid);
-        }
+    public WifiListAdapter(Context context) {
+        mContext = context.getApplicationContext();
+        this.scanResults = new ArrayList<>();
     }
 
-    // 初始化
-    public WifiListAdapter(List<ScanResult> scanResults) {
-        mScanResults = new ArrayList<>();
+    public void refreshData(List<ScanResult> scanResults) {
+        // 清空数据
+        this.scanResults.clear();
         if (null != scanResults) {
-            mScanResults.addAll(scanResults);
+            // 更新数据
+            this.scanResults.addAll(scanResults);
         }
-    }
-
-    /**
-     * 清空数据
-     */
-    public void cleanData() {
-        mScanResults = new ArrayList<>();
+        // 更新显示
         notifyDataSetChanged();
     }
 
-    public ScanResult getScanResult(int position) {
-        try {
-            return mScanResults.get(position);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    @Override
+    public int getCount() {
+        return scanResults.size();
+    }
+
+    @Override
+    public Object getItem(int position) {
+        return scanResults.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        ViewHolder holder;
+        if (convertView == null) {
+            LayoutInflater layoutInflater = LayoutInflater.from(mContext);
+            convertView = layoutInflater.inflate(R.layout.item_wifi, null);
+            holder = new ViewHolder();
+            holder.ssid = (TextView) (convertView).findViewById(R.id.ssid);
+            convertView.setTag(holder);
+
+        } else {
+            holder = (ViewHolder) convertView.getTag();
         }
+        ScanResult scanResult = scanResults.get(position);
+        holder.ssid.setText("热点名称：" + scanResult.SSID + "\n信号强度：" + WifiManager.calculateSignalLevel(scanResult.level, 5) + "/5\n加密方式：" + scanResult.capabilities);
+        return convertView;
     }
 
-    // 用来创建新视图（由布局管理器调用）
-    @Override
-    public WifiListAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_wifi, parent, false));
-    }
-
-    // 用来替换视图的内容（由布局管理器调用）
-    @Override
-    public void onBindViewHolder(WifiListAdapter.ViewHolder holder, int position) {
-        // 信号等级
-        int level = mScanResults.get(position).level;
-        int l = WifiManager.calculateSignalLevel(level, 100);
-
-        holder.ssid.setText(mScanResults.get(position).SSID + "  信号等级：" + l);
-    }
-
-    // 返回数据集的大小（由布局管理器调用）
-    @Override
-    public int getItemCount() {
-        return mScanResults.size();
+    private class ViewHolder {
+        private TextView ssid;
     }
 }

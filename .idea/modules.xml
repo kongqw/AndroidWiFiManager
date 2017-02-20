@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/KqwWifiManagerDemo.iml" filepath="$PROJECT_DIR$/KqwWifiManagerDemo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/WiFiLibrary/WiFiLibrary.iml" filepath="$PROJECT_DIR$/WiFiLibrary/WiFiLibrary.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

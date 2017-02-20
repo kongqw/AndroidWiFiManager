@@ -1,4 +1,4 @@
-package kong.qingwei.kqwwifimanagerdemo.listener;
+package com.kongqw.wifilibrary.listener;
 
 import android.net.wifi.ScanResult;
 
