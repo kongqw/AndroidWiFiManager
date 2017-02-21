@@ -5,18 +5,19 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.kongqw.wifilibrary.WiFiManager;
+import com.kongqw.wifilibrary.listener.OnWifiConnectListener;
+import com.kongqw.wifilibrary.listener.OnWifiScanResultsListener;
 
 import java.util.List;
 
@@ -24,8 +25,6 @@ import kong.qingwei.kqwwifimanagerdemo.adapter.WifiListAdapter;
 import kong.qingwei.kqwwifimanagerdemo.view.ConnectWifiDialog;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener {
-
-    private static final String TAG = "MainActivity";
 
     private ListView mWifiList;
     private SwipeRefreshLayout mSwipeLayout;
@@ -47,11 +46,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP
-        Toast.makeText(getApplicationContext(),
-                "Build.VERSION.SDK_INT = " + Build.VERSION.SDK_INT +
-                        "\nBuild.VERSION_CODES.LOLLIPOP = " + Build.VERSION_CODES.LOLLIPOP,
-                Toast.LENGTH_SHORT).show();
         // 下拉刷新
         mSwipeLayout = (SwipeRefreshLayout) findViewById(R.id.swipeRefreshLayout);
         mSwipeLayout.setOnRefreshListener(this);
@@ -71,8 +65,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 if (GET_WIFI_LIST_REQUEST_CODE == requestCode) {
                     // 获取WIFI列表
                     List<ScanResult> scanResults = mWiFiManager.getScanResults();
-                    // 刷新界面
-                    mWifiListAdapter.refreshData(scanResults);
+                    refreshData(scanResults);
                 }
             }
 
@@ -85,26 +78,39 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         // 请求WIFI列表
         mPermissionsManager.checkPermissions(GET_WIFI_LIST_REQUEST_CODE, PERMISSIONS);
 
-
-        List<WifiConfiguration> wifiConfigurations = mWiFiManager.getConfiguredNetworks();
-        for (WifiConfiguration wifiConfiguration : wifiConfigurations) {
-            Log.i(TAG, "onCreate: ----------------");
-            Log.i(TAG, "SSID: " + wifiConfiguration.SSID);
-            Log.i(TAG, "wepKeys: " + wifiConfiguration.wepKeys[0]);
-            Log.i(TAG, "preSharedKey: " + wifiConfiguration.preSharedKey);
-        }
+        // 添加扫描完成的监听
+        mWiFiManager.setOnWifiScanResultsListener(new OnWifiScanResultsListener() {
+            @Override
+            public void onScanResults(List<ScanResult> scanResults) {
+                refreshData(scanResults);
+            }
+        });
+        // 添加WIFI连接的监听
+        mWiFiManager.setOnWifiConnectListener(new OnWifiConnectListener() {
+            @Override
+            public void onSuccess(String SSID) {
+                Toast.makeText(getApplicationContext(), SSID + "  连接成功", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
     public void onRefresh() {
-        Toast.makeText(getApplicationContext(), "触发下拉刷新", Toast.LENGTH_SHORT).show();
+        // 下拉刷新
         mWiFiManager.startScan();
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mSwipeLayout.setRefreshing(false);
-            }
-        }, 2000);
+    }
+
+    /**
+     * 刷新页面
+     *
+     * @param scanResults WIFI数据
+     */
+    public void refreshData(List<ScanResult> scanResults) {
+        mSwipeLayout.setRefreshing(false);
+        // 刷新界面
+        mWifiListAdapter.refreshData(scanResults);
+
+        Snackbar.make(mWifiList, "WIFI列表刷新成功", Snackbar.LENGTH_SHORT).show();
     }
 
     @Override
@@ -124,7 +130,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                     @Override
                     public void connect(String password) {
-                        Toast.makeText(getApplicationContext(), "WPA2 连接WIFI ： " + password, Toast.LENGTH_SHORT).show();
                         mWiFiManager.connectWPA2Network(scanResult.SSID, password);
                     }
                 }.setSsid(scanResult.SSID).show();
@@ -134,13 +139,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                     @Override
                     public void connect(String password) {
-                        Toast.makeText(getApplicationContext(), "WEP 连接WIFI ： " + password, Toast.LENGTH_SHORT).show();
                         mWiFiManager.connectWEPNetwork(scanResult.SSID, password);
                     }
                 }.setSsid(scanResult.SSID).show();
                 break;
             case OPEN: // 开放网络
-                Toast.makeText(getApplicationContext(), "OPEN 连接开放网络", Toast.LENGTH_SHORT).show();
                 mWiFiManager.connectOpenNetwork(scanResult.SSID);
                 break;
         }

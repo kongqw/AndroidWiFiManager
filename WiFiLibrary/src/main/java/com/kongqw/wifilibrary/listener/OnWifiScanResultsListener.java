@@ -9,13 +9,6 @@ import java.util.List;
  * WIFI扫描结果的回调接口
  */
 public interface OnWifiScanResultsListener {
-
-    // 开始
-    void onStart();
-
     // 扫描结果
     void onScanResults(List<ScanResult> scanResults);
-
-    // 结束
-    void onFinish();
 }

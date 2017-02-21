@@ -20,10 +20,10 @@
             <intent-filter>
                 <!-- AP扫描完成，客户端得到可用的结果集 -->
                 <action android:name="android.net.wifi.SCAN_RESULTS"/>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED"/>
                 <action android:name="android.net.wifi.STATE_CHANGE"/>
                 <action android:name="android.net.wifi.supplicant.STATE_CHANGE"/>
+                <action android:name="android.net.wifi.supplicant.CONNECTION_CHANGE"/>
             </intent-filter>
         </receiver>
 

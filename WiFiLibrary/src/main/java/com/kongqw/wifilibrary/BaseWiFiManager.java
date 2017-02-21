@@ -9,7 +9,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.Log;
 
 import java.util.List;
 
@@ -20,7 +19,7 @@ import java.util.List;
 
 public class BaseWiFiManager {
 
-    WifiManager mWifiManager;
+    static WifiManager mWifiManager;
 
     private static ConnectivityManager mConnectivityManager;
 
@@ -90,11 +89,9 @@ public class BaseWiFiManager {
             wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
             wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
             wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104);
-            Log.i("kongqw", "setWEPNetwork: addNetwork");
             // 添加配置并返回NetworkID
             return addNetwork(wifiConfig);
         } else {
-            Log.i("kongqw", "setWEPNetwork: updateNetwork");
             // 更新配置并返回NetworkID
             wifiConfiguration.wepKeys[0] = "\"" + password + "\"";
             return updateNetwork(wifiConfiguration);
@@ -130,10 +127,8 @@ public class BaseWiFiManager {
             wifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
             wifiConfig.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
             // 添加配置并返回NetworkID
-            Log.i("kongqw", "setWPA2Network: addNetwork");
             return addNetwork(wifiConfig);
         } else {
-            Log.i("kongqw", "setWPA2Network: updateNetwork  wifiConfiguration.SSID = " + wifiConfiguration.SSID + "   wifiConfiguration.networkId = " + wifiConfiguration.networkId);
             // 更新配置并返回NetworkID
             wifiConfiguration.preSharedKey = "\"" + password + "\"";
             return updateNetwork(wifiConfiguration);
@@ -150,7 +145,6 @@ public class BaseWiFiManager {
         ssid = addDoubleQuotation(ssid);
         List<WifiConfiguration> existingConfigs = getConfiguredNetworks();
         for (WifiConfiguration existingConfig : existingConfigs) {
-            Log.i("kongqw", "getConfigFromConfiguredNetworksBySsid: existingConfig.SSID = " + existingConfig.SSID + "  existingConfig.networkId = " + existingConfig.networkId + "  ssid = " + ssid);
             if (existingConfig.SSID.equals(ssid)) {
                 return existingConfig;
             }
@@ -250,8 +244,9 @@ public class BaseWiFiManager {
         if (null != mWifiManager) {
             boolean isDisconnect = mWifiManager.disconnect();
             boolean isEnableNetwork = mWifiManager.enableNetwork(networkId, true);
+            boolean isSave = mWifiManager.saveConfiguration();
             boolean isReconnect = mWifiManager.reconnect();
-            return isDisconnect && isEnableNetwork && isReconnect;
+            return isDisconnect && isEnableNetwork && isSave && isReconnect;
         } else {
             return false;
         }
@@ -267,13 +262,11 @@ public class BaseWiFiManager {
         int networkId = mWifiManager.addNetwork(wifiConfig);
         if (networkId != -1) {
             boolean isSave = mWifiManager.saveConfiguration();
-            Log.i("kongqw", "addNetwork: networkId = " + networkId + "   isSave = " + isSave);
             if (isSave) {
                 return networkId;
             }
 
         }
-        Log.i("kongqw", "addNetwork: -1");
         return -1;
     }
 
@@ -287,13 +280,11 @@ public class BaseWiFiManager {
         int networkId = mWifiManager.updateNetwork(wifiConfig);
         if (networkId != -1) {
             boolean isSave = mWifiManager.saveConfiguration();
-            Log.i("kongqw", "updateNetwork: networkId = " + networkId + "   isSave = " + isSave);
             if (isSave) {
                 return networkId;
             }
 
         }
-        Log.i("kongqw", "updateNetwork: -1  networkId = " + networkId + "   wifiConfig.networkId = " + wifiConfig.networkId);
         return -1;
     }
 
@@ -316,11 +307,9 @@ public class BaseWiFiManager {
      * @return 是否删除成功
      */
     public boolean deleteConfig(int netId) {
-        // TODO 正在连接的网络不能删除，要先断开连接，再删除
         boolean isDisable = mWifiManager.disableNetwork(netId);
         boolean isRemove = mWifiManager.removeNetwork(netId);
         boolean isSave = mWifiManager.saveConfiguration();
-        Log.i("kongqw", "deleteConfig: isDisable = " + isDisable + "  isRemove = " + isRemove + "  isSave = " + isSave);
         return isDisable && isRemove && isSave;
     }
 
