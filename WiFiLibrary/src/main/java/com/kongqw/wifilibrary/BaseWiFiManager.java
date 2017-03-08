@@ -10,22 +10,24 @@ import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by kongqingwei on 2017/2/17.
  * BaseWiFiManager
  */
-
 public class BaseWiFiManager {
 
-    static WifiManager mWifiManager;
+    WifiManager mWifiManager;
 
-    private static ConnectivityManager mConnectivityManager;
+    private ConnectivityManager mConnectivityManager;
 
     BaseWiFiManager(Context context) {
         // 取得WifiManager对象
-        mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         mConnectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
@@ -96,7 +98,6 @@ public class BaseWiFiManager {
             wifiConfiguration.wepKeys[0] = "\"" + password + "\"";
             return updateNetwork(wifiConfiguration);
         }
-
     }
 
     /**
@@ -144,9 +145,11 @@ public class BaseWiFiManager {
     public WifiConfiguration getConfigFromConfiguredNetworksBySsid(@NonNull String ssid) {
         ssid = addDoubleQuotation(ssid);
         List<WifiConfiguration> existingConfigs = getConfiguredNetworks();
-        for (WifiConfiguration existingConfig : existingConfigs) {
-            if (existingConfig.SSID.equals(ssid)) {
-                return existingConfig;
+        if (null != existingConfigs) {
+            for (WifiConfiguration existingConfig : existingConfigs) {
+                if (existingConfig.SSID.equals(ssid)) {
+                    return existingConfig;
+                }
             }
         }
         return null;
@@ -158,7 +161,7 @@ public class BaseWiFiManager {
      *
      * @return WIFI的可用状态
      */
-    boolean isWifiEnabled() {
+    public boolean isWifiEnabled() {
         return null != mWifiManager && mWifiManager.isWifiEnabled();
     }
 
@@ -169,11 +172,12 @@ public class BaseWiFiManager {
      */
     boolean isWifiConnected() {
         if (null != mConnectivityManager) {
-            NetworkInfo mWifi = mConnectivityManager.getActiveNetworkInfo();
-            return mWifi.isConnected();
-        } else {
-            return false;
+            NetworkInfo networkInfo = mConnectivityManager.getActiveNetworkInfo();
+            if (null != networkInfo) {
+                return networkInfo.isConnected();
+            }
         }
+        return false;
     }
 
     /**
@@ -184,9 +188,8 @@ public class BaseWiFiManager {
     public WifiInfo getConnectionInfo() {
         if (null != mWifiManager) {
             return mWifiManager.getConnectionInfo();
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
@@ -207,9 +210,43 @@ public class BaseWiFiManager {
         // 得到扫描结果
         if (null != mWifiManager) {
             return mWifiManager.getScanResults();
-        } else {
-            return null;
         }
+        return null;
+    }
+
+    /**
+     * 排除重复
+     *
+     * @param scanResults 带处理的数据
+     * @return 去重数据
+     */
+    public static ArrayList<ScanResult> excludeRepetition(List<ScanResult> scanResults) {
+        HashMap<String, ScanResult> hashMap = new HashMap<>();
+
+        for (ScanResult scanResult : scanResults) {
+            String ssid = scanResult.SSID;
+
+            if (TextUtils.isEmpty(ssid)) {
+                continue;
+            }
+
+            ScanResult tempResult = hashMap.get(ssid);
+            if (null == tempResult) {
+                hashMap.put(ssid, scanResult);
+                continue;
+            }
+
+            if (WifiManager.calculateSignalLevel(tempResult.level, 100) < WifiManager.calculateSignalLevel(scanResult.level, 100)) {
+                hashMap.put(ssid, scanResult);
+            }
+        }
+
+        ArrayList<ScanResult> results = new ArrayList<>();
+        for (Map.Entry<String, ScanResult> entry : hashMap.entrySet()) {
+            results.add(entry.getValue());
+        }
+
+        return results;
     }
 
     /**
@@ -217,12 +254,11 @@ public class BaseWiFiManager {
      *
      * @return 配置信息
      */
-    public List<WifiConfiguration> getConfiguredNetworks() {
+    private List<WifiConfiguration> getConfiguredNetworks() {
         if (null != mWifiManager) {
             return mWifiManager.getConfiguredNetworks();
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
@@ -247,9 +283,8 @@ public class BaseWiFiManager {
             boolean isSave = mWifiManager.saveConfiguration();
             boolean isReconnect = mWifiManager.reconnect();
             return isDisconnect && isEnableNetwork && isSave && isReconnect;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -259,13 +294,14 @@ public class BaseWiFiManager {
      * @return NetworkId
      */
     private int addNetwork(WifiConfiguration wifiConfig) {
-        int networkId = mWifiManager.addNetwork(wifiConfig);
-        if (networkId != -1) {
-            boolean isSave = mWifiManager.saveConfiguration();
-            if (isSave) {
-                return networkId;
+        if (null != mWifiManager) {
+            int networkId = mWifiManager.addNetwork(wifiConfig);
+            if (-1 != networkId) {
+                boolean isSave = mWifiManager.saveConfiguration();
+                if (isSave) {
+                    return networkId;
+                }
             }
-
         }
         return -1;
     }
@@ -277,13 +313,14 @@ public class BaseWiFiManager {
      * @return NetworkId
      */
     private int updateNetwork(WifiConfiguration wifiConfig) {
-        int networkId = mWifiManager.updateNetwork(wifiConfig);
-        if (networkId != -1) {
-            boolean isSave = mWifiManager.saveConfiguration();
-            if (isSave) {
-                return networkId;
+        if (null != mWifiManager) {
+            int networkId = mWifiManager.updateNetwork(wifiConfig);
+            if (-1 != networkId) {
+                boolean isSave = mWifiManager.saveConfiguration();
+                if (isSave) {
+                    return networkId;
+                }
             }
-
         }
         return -1;
     }
@@ -295,9 +332,12 @@ public class BaseWiFiManager {
      * @return 是否断开
      */
     public boolean disconnectWifi(int netId) {
-        boolean isDisable = mWifiManager.disableNetwork(netId);
-        boolean isDisconnect = mWifiManager.disconnect();
-        return isDisable && isDisconnect;
+        if (null != mWifiManager) {
+            boolean isDisable = mWifiManager.disableNetwork(netId);
+            boolean isDisconnect = mWifiManager.disconnect();
+            return isDisable && isDisconnect;
+        }
+        return false;
     }
 
     /**
@@ -307,22 +347,23 @@ public class BaseWiFiManager {
      * @return 是否删除成功
      */
     public boolean deleteConfig(int netId) {
-        boolean isDisable = mWifiManager.disableNetwork(netId);
-        boolean isRemove = mWifiManager.removeNetwork(netId);
-        boolean isSave = mWifiManager.saveConfiguration();
-        return isDisable && isRemove && isSave;
+        if (null != mWifiManager) {
+            boolean isDisable = mWifiManager.disableNetwork(netId);
+            boolean isRemove = mWifiManager.removeNetwork(netId);
+            boolean isSave = mWifiManager.saveConfiguration();
+            return isDisable && isRemove && isSave;
+        }
+        return false;
     }
-
-    public int calculateSignalLevel(int rssi) {
-        return WifiManager.calculateSignalLevel(rssi, 5);
-    }
-
 
     /**
-     * 网络加密模式
+     * 计算WIFI信号强度
+     *
+     * @param rssi WIFI信号
+     * @return 强度
      */
-    public enum SecurityMode {
-        OPEN, WEP, WPA, WPA2
+    public int calculateSignalLevel(int rssi) {
+        return WifiManager.calculateSignalLevel(rssi, 5);
     }
 
     /**
@@ -331,18 +372,18 @@ public class BaseWiFiManager {
      * @param scanResult WIFI信息
      * @return 加密方式
      */
-    public SecurityMode getSecurityMode(@NonNull ScanResult scanResult) {
+    public SecurityModeEnum getSecurityMode(@NonNull ScanResult scanResult) {
         String capabilities = scanResult.capabilities;
 
         if (capabilities.contains("WPA")) {
-            return SecurityMode.WPA;
+            return SecurityModeEnum.WPA;
         } else if (capabilities.contains("WEP")) {
-            return SecurityMode.WEP;
+            return SecurityModeEnum.WEP;
             //        } else if (capabilities.contains("EAP")) {
             //            return SecurityMode.WEP;
         } else {
             // 没有加密
-            return SecurityMode.OPEN;
+            return SecurityModeEnum.OPEN;
         }
     }
 

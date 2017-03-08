@@ -5,6 +5,7 @@ package com.kongqw.wifilibrary.listener;
  * WIFI打开关闭的回调接口
  */
 public interface OnWifiEnabledListener {
+
     /**
      * WIFI开关的回调
      *

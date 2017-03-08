@@ -5,19 +5,25 @@ package com.kongqw.wifilibrary.listener;
  * WIFI连接的回调接口
  */
 public interface OnWifiConnectListener {
-//
-//    // 开始
-//    void onStart(String SSID);
-//
-//    // 连接信息
-//    void onConnectingMessage(String message);
-//
-//    // 成功
-    void onSuccess(String SSID);
 
-//    // 失败
-//    void onFailure();
-//
-//    // 结束
-//    void onFinish();
+    /**
+     * WIFI连接信息的回调
+     *
+     * @param log log
+     */
+    void onWiFiConnectLog(String log);
+
+    /**
+     * WIFI连接成功的回调
+     *
+     * @param SSID 热点名
+     */
+    void onWiFiConnectSuccess(String SSID);
+
+    /**
+     * WIFI连接失败的回调
+     *
+     * @param SSID 热点名
+     */
+    void onWiFiConnectFailure(String SSID);
 }
