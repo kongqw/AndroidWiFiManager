@@ -19,7 +19,7 @@ import java.util.Map;
  * Created by kongqingwei on 2017/2/17.
  * BaseWiFiManager
  */
-class BaseWiFiManager {
+public class BaseWiFiManager {
 
     WifiManager mWifiManager;
 
