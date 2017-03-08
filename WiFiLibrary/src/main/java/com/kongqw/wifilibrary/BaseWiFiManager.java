@@ -19,13 +19,13 @@ import java.util.Map;
  * Created by kongqingwei on 2017/2/17.
  * BaseWiFiManager
  */
-public class BaseWiFiManager {
+class BaseWiFiManager {
 
     WifiManager mWifiManager;
 
     private ConnectivityManager mConnectivityManager;
 
-    public BaseWiFiManager(Context context) {
+    BaseWiFiManager(Context context) {
         // 取得WifiManager对象
         mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
