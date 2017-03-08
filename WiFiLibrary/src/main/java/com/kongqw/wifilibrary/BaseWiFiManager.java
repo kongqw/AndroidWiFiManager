@@ -25,7 +25,7 @@ public class BaseWiFiManager {
 
     private ConnectivityManager mConnectivityManager;
 
-    BaseWiFiManager(Context context) {
+    public BaseWiFiManager(Context context) {
         // 取得WifiManager对象
         mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
