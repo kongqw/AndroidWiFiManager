@@ -19,7 +19,7 @@ Step 2. Add the dependency
 
 ``` gradle
 dependencies {
-        compile 'com.github.kongqw:AndroidWiFiManager:1.0.0'
+        compile 'com.github.kongqw:AndroidWiFiManager:1.0.1'
 }
 ```
 
