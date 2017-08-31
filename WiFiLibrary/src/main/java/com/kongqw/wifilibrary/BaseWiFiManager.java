@@ -21,9 +21,9 @@ import java.util.Map;
  */
 public class BaseWiFiManager {
 
-    WifiManager mWifiManager;
+    static WifiManager mWifiManager;
 
-    private ConnectivityManager mConnectivityManager;
+    private static ConnectivityManager mConnectivityManager;
 
     BaseWiFiManager(Context context) {
         // 取得WifiManager对象
@@ -173,9 +173,20 @@ public class BaseWiFiManager {
     boolean isWifiConnected() {
         if (null != mConnectivityManager) {
             NetworkInfo networkInfo = mConnectivityManager.getActiveNetworkInfo();
-            if (null != networkInfo) {
-                return networkInfo.isConnected();
-            }
+            return null != networkInfo && networkInfo.isConnected() && networkInfo.getType() == ConnectivityManager.TYPE_WIFI;
+        }
+        return false;
+    }
+
+    /**
+     * 判断设备是否有网
+     *
+     * @return 网络状态
+     */
+    boolean hasNetwork() {
+        if (null != mConnectivityManager) {
+            NetworkInfo networkInfo = mConnectivityManager.getActiveNetworkInfo();
+            return networkInfo != null && networkInfo.isAvailable();
         }
         return false;
     }
@@ -278,7 +289,7 @@ public class BaseWiFiManager {
      */
     boolean enableNetwork(int networkId) {
         if (null != mWifiManager) {
-            boolean isDisconnect = mWifiManager.disconnect();
+            boolean isDisconnect = disconnectCurrentWifi();
             boolean isEnableNetwork = mWifiManager.enableNetwork(networkId, true);
             boolean isSave = mWifiManager.saveConfiguration();
             boolean isReconnect = mWifiManager.reconnect();
@@ -326,7 +337,7 @@ public class BaseWiFiManager {
     }
 
     /**
-     * 断开WIFI
+     * 断开指定 WIFI
      *
      * @param netId netId
      * @return 是否断开
@@ -338,6 +349,22 @@ public class BaseWiFiManager {
             return isDisable && isDisconnect;
         }
         return false;
+    }
+
+    /**
+     * 断开当前的WIFI
+     *
+     * @return 是否断开成功
+     */
+    public boolean disconnectCurrentWifi() {
+        WifiInfo wifiInfo = getConnectionInfo();
+        if (null != wifiInfo) {
+            int networkId = wifiInfo.getNetworkId();
+            return disconnectWifi(networkId);
+        } else {
+            // 断开状态
+            return true;
+        }
     }
 
     /**

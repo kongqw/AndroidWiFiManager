@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mWifiList.setOnItemClickListener(this);
         mWifiList.setOnItemLongClickListener(this);
         // WIFI管理器
-        mWiFiManager = new WiFiManager(getApplicationContext());
+        mWiFiManager = WiFiManager.getInstance(getApplicationContext());
         // 动态权限管理器
         mPermissionsManager = new PermissionsManager(this) {
             @Override

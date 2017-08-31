@@ -30,6 +30,7 @@ import java.util.List;
 public class WiFiManager extends BaseWiFiManager {
 
     private static final String TAG = "WiFiManager";
+    private static WiFiManager mWiFiManager;
     private static CallBackHandler mCallBackHandler = new CallBackHandler();
     private static final int WIFI_STATE_ENABLED = 0;
     private static final int WIFI_STATE_DISABLED = 1;
@@ -38,8 +39,19 @@ public class WiFiManager extends BaseWiFiManager {
     private static final int WIFI_CONNECT_SUCCESS = 5;
     private static final int WIFI_CONNECT_FAILURE = 6;
 
-    public WiFiManager(Context context) {
+    private WiFiManager(Context context) {
         super(context);
+    }
+
+    public static WiFiManager getInstance(Context context) {
+        if (null == mWiFiManager) {
+            synchronized (WiFiManager.class) {
+                if (null == mWiFiManager) {
+                    mWiFiManager = new WiFiManager(context);
+                }
+            }
+        }
+        return mWiFiManager;
     }
 
     /**
